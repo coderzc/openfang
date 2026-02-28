@@ -1155,20 +1155,6 @@ fn builtin_models() -> Vec<ModelCatalogEntry> {
             aliases: vec![],
         },
         ModelCatalogEntry {
-            id: "deepseek-r1-distill-llama-70b".into(),
-            display_name: "DeepSeek R1 Distill 70B".into(),
-            provider: "groq".into(),
-            tier: ModelTier::Smart,
-            context_window: 128_000,
-            max_output_tokens: 16_384,
-            input_cost_per_m: 0.75,
-            output_cost_per_m: 0.99,
-            supports_tools: true,
-            supports_vision: false,
-            supports_streaming: true,
-            aliases: vec![],
-        },
-        ModelCatalogEntry {
             id: "mixtral-8x7b-32768".into(),
             display_name: "Mixtral 8x7B".into(),
             provider: "groq".into(),
@@ -2707,7 +2693,7 @@ mod tests {
         let anthropic = catalog.get_provider("anthropic").unwrap();
         assert_eq!(anthropic.model_count, 7);
         let groq = catalog.get_provider("groq").unwrap();
-        assert_eq!(groq.model_count, 11);
+        assert_eq!(groq.model_count, 10);
     }
 
     #[test]

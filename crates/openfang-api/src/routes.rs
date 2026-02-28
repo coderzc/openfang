@@ -285,6 +285,7 @@ pub async fn send_message(
                     input_tokens: result.total_usage.input_tokens,
                     output_tokens: result.total_usage.output_tokens,
                     iterations: result.iterations,
+                    cost_usd: result.cost_usd,
                 })),
             )
         }
@@ -3639,10 +3640,9 @@ pub async fn hand_instance_browser(
                 url = data["url"].as_str().unwrap_or("").to_string();
                 title = data["title"].as_str().unwrap_or("").to_string();
                 content = data["content"].as_str().unwrap_or("").to_string();
-                // Truncate content to avoid huge payloads (keep first 2000 chars)
+                // Truncate content to avoid huge payloads (UTF-8 safe)
                 if content.len() > 2000 {
-                    content.truncate(2000);
-                    content.push_str("... (truncated)");
+                    content = format!("{}... (truncated)", openfang_types::truncate_str(&content, 2000));
                 }
             }
         }

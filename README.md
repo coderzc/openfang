@@ -412,7 +412,7 @@ MIT — use it however you want.
 <p align="center">
   <a href="https://www.rightnowai.co/">Website</a> &bull;
   <a href="https://x.com/Akashi203">Twitter / X</a> &bull;
-  <a href="https://github.com/sponsors/RightNow-AI">Sponsor</a>
+  <a href="https://www.buymeacoffee.com/openfang" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 </p>
 
 ---

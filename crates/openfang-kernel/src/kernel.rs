@@ -413,12 +413,8 @@ fn append_daily_memory_log(workspace: &Path, response: &str) {
             return;
         }
     }
-    // Truncate long responses for the log
-    let summary = if trimmed.len() > 500 {
-        &trimmed[..500]
-    } else {
-        trimmed
-    };
+    // Truncate long responses for the log (UTF-8 safe)
+    let summary = openfang_types::truncate_str(trimmed, 500);
     let timestamp = chrono::Utc::now().format("%H:%M:%S").to_string();
     if let Ok(mut f) = std::fs::OpenOptions::new()
         .create(true)
@@ -1406,6 +1402,16 @@ impl OpenFangKernel {
             };
             manifest.model.system_prompt =
                 openfang_runtime::prompt_builder::build_system_prompt(&prompt_ctx);
+            // Store canonical context separately for injection as user message
+            // (keeps system prompt stable across turns for provider prompt caching)
+            if let Some(cc_msg) =
+                openfang_runtime::prompt_builder::build_canonical_context_message(&prompt_ctx)
+            {
+                manifest.metadata.insert(
+                    "canonical_context_msg".to_string(),
+                    serde_json::Value::String(cc_msg),
+                );
+            }
         }
 
         let memory = Arc::clone(&self.memory);
@@ -1854,6 +1860,16 @@ impl OpenFangKernel {
             };
             manifest.model.system_prompt =
                 openfang_runtime::prompt_builder::build_system_prompt(&prompt_ctx);
+            // Store canonical context separately for injection as user message
+            // (keeps system prompt stable across turns for provider prompt caching)
+            if let Some(cc_msg) =
+                openfang_runtime::prompt_builder::build_canonical_context_message(&prompt_ctx)
+            {
+                manifest.metadata.insert(
+                    "canonical_context_msg".to_string(),
+                    serde_json::Value::String(cc_msg),
+                );
+            }
         }
 
         let is_stable = self.config.mode == openfang_types::config::KernelMode::Stable;
