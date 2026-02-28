@@ -3,6 +3,10 @@ name: Docker Build
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: 'Branch or tag to build (default: main)'
+        required: false
+        default: 'main'
       tag:
         description: 'Image tag (default: latest)'
         required: false
@@ -21,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
