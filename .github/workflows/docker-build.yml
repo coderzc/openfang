@@ -76,13 +76,11 @@ jobs:
           echo "ghcr_tags=${GHCR_TAGS}" >> "$GITHUB_OUTPUT"
           echo "summary=${SUMMARY}" >> "$GITHUB_OUTPUT"
 
-      - name: Generate cache key
-        id: cache
+      - name: Get commit SHA
+        id: commit
         run: |
-          REF="${{ github.event.inputs.ref }}"
-          # Sanitize ref for cache key (replace / with -)
-          CACHE_KEY=$(echo "$REF" | sed 's/[^a-zA-Z0-9._-]/-/g')
-          echo "cache_key=${CACHE_KEY}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -93,11 +91,13 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.dh_tags }}
             ${{ steps.tags.outputs.ghcr_tags }}
-          cache-from: type=gha,scope=${{ steps.cache.outputs.cache_key }}
-          cache-to: type=gha,mode=max,scope=${{ steps.cache.outputs.cache_key }}
+          cache-from: type=gha,scope=${{ steps.commit.outputs.sha }}
+          cache-to: type=gha,mode=max,scope=${{ steps.commit.outputs.sha }}
           no-cache: ${{ github.event.inputs.no_cache == 'yes' }}
 
       - name: Summary
         run: |
           echo "✅ Docker images built and pushed:"
+          echo "  Commit: ${{ steps.commit.outputs.short_sha }} (${{ steps.commit.outputs.sha }})"
+          echo ""
           printf "${{ steps.tags.outputs.summary }}"
