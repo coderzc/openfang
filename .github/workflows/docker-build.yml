@@ -8,7 +8,7 @@ on:
         required: false
         default: 'main'
       tag:
-        description: 'Image tag (default: latest)'
+        description: 'Image tag(s), comma separated (e.g., latest,0.1.0)'
         required: false
         default: 'latest'
 
@@ -47,10 +47,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Determine tag
-        id: tag
+      - name: Generate tags
+        id: tags
         run: |
-          echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          INPUT_TAGS="${{ github.event.inputs.tag }}"
+          DH_TAGS=""
+          GHCR_TAGS=""
+          SUMMARY=""
+          
+          IFS=',' read -ra TAGS <<< "$INPUT_TAGS"
+          for tag in "${TAGS[@]}"; do
+            tag=$(echo "$tag" | xargs)  # trim whitespace
+            DH_TAGS="${DH_TAGS}${{ secrets.DOCKER_USERNAME }}/openfang:${tag},"
+            GHCR_TAGS="${GHCR_TAGS}ghcr.io/${{ github.repository_owner }}/openfang:${tag},"
+            SUMMARY="${SUMMARY}  - docker.io/${{ secrets.DOCKER_USERNAME }}/openfang:${tag}\n"
+            SUMMARY="${SUMMARY}  - ghcr.io/${{ github.repository_owner }}/openfang:${tag}\n"
+          done
+          
+          # Remove trailing comma
+          DH_TAGS="${DH_TAGS%,}"
+          GHCR_TAGS="${GHCR_TAGS%,}"
+          
+          echo "dh_tags=${DH_TAGS}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_tags=${GHCR_TAGS}" >> "$GITHUB_OUTPUT"
+          echo "summary=${SUMMARY}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -59,13 +79,12 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/openfang:${{ steps.tag.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/openfang:${{ steps.tag.outputs.tag }}
+            ${{ steps.tags.outputs.dh_tags }}
+            ${{ steps.tags.outputs.ghcr_tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Summary
         run: |
           echo "✅ Docker images built and pushed:"
-          echo "  - docker.io/${{ secrets.DOCKER_USERNAME }}/openfang:${{ steps.tag.outputs.tag }}"
-          echo "  - ghcr.io/${{ github.repository_owner }}/openfang:${{ steps.tag.outputs.tag }}"
+          printf "${{ steps.tags.outputs.summary }}"
