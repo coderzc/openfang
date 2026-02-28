@@ -3,6 +3,8 @@ name: Docker Build
 on:
   push:
     branches: [main, master]
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
@@ -48,6 +50,10 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            # Remove 'v' prefix from tag
+            TAG="${GITHUB_REF#refs/tags/v}"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           else
             echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
