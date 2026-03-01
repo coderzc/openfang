@@ -39,12 +39,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -55,24 +49,31 @@ jobs:
         id: tags
         run: |
           INPUT_TAGS="${{ github.event.inputs.tag }}"
-          DH_TAGS=""
+          
+          # If no tags provided, use branch name (sanitize: replace / with -)
+          if [ -z "$INPUT_TAGS" ] || [ "$INPUT_TAGS" = "latest" ]; then
+            BRANCH_NAME="${{ github.event.inputs.ref }}"
+            # Remove refs/heads/ or refs/tags/ prefix if present
+            BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's|^refs/heads/||; s|^refs/tags/||')
+            # Sanitize: replace / and other invalid chars with -
+            SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | tr '/' '-' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g')
+            INPUT_TAGS="$SANITIZED_BRANCH"
+            echo "Using branch name as tag: $INPUT_TAGS"
+          fi
+          
           GHCR_TAGS=""
           SUMMARY=""
           
           IFS=',' read -ra TAGS <<< "$INPUT_TAGS"
           for tag in "${TAGS[@]}"; do
             tag=$(echo "$tag" | xargs)  # trim whitespace
-            DH_TAGS="${DH_TAGS}${{ secrets.DOCKER_USERNAME }}/openfang:${tag},"
             GHCR_TAGS="${GHCR_TAGS}ghcr.io/${{ github.repository_owner }}/openfang:${tag},"
-            SUMMARY="${SUMMARY}  - docker.io/${{ secrets.DOCKER_USERNAME }}/openfang:${tag}\n"
             SUMMARY="${SUMMARY}  - ghcr.io/${{ github.repository_owner }}/openfang:${tag}\n"
           done
           
           # Remove trailing comma
-          DH_TAGS="${DH_TAGS%,}"
           GHCR_TAGS="${GHCR_TAGS%,}"
           
-          echo "dh_tags=${DH_TAGS}" >> "$GITHUB_OUTPUT"
           echo "ghcr_tags=${GHCR_TAGS}" >> "$GITHUB_OUTPUT"
           echo "summary=${SUMMARY}" >> "$GITHUB_OUTPUT"
 
@@ -88,9 +89,7 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ steps.tags.outputs.dh_tags }}
-            ${{ steps.tags.outputs.ghcr_tags }}
+          tags: ${{ steps.tags.outputs.ghcr_tags }}
           cache-from: type=gha,scope=${{ steps.commit.outputs.sha }}
           cache-to: type=gha,mode=max,scope=${{ steps.commit.outputs.sha }}
           no-cache: ${{ github.event.inputs.no_cache == 'yes' }}
