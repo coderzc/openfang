@@ -33,7 +33,7 @@ jobs:
         run: |
           git checkout main
           git merge upstream/main --no-edit || true
-          git push origin main
+          git push origin refs/heads/main:refs/heads/main
 
       - name: Sync tags
         run: |
